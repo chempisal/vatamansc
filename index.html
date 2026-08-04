@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="km">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ប្រព័ន្ធគ្រប់គ្រងវត្តមានគ្រូបង្រៀន - QR Code Attendance</title>
+    <!-- Google Fonts: Kantumruy Pro (Khmer) & Inter (English) -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="logged-out">
+
+    <!-- ==========================================================================
+       LOGIN VIEW (FULLSCREEN OVERLAY)
+       ========================================================================== */ -->
+    <div class="login-screen-overlay" id="login-screen">
+        <div class="login-card">
+            <div class="login-card-header">
+                <div class="login-brand-icon">
+                    <i class="fa-solid fa-qrcode"></i>
+                    <div class="login-scan-line"></div>
+                </div>
+                <h2>ប្រព័ន្ធគ្រប់គ្រងវត្តមានគ្រូ</h2>
+                <p id="login-school-display">សាលារៀនគំរូ</p>
+            </div>
+            <form id="login-form" class="login-card-body">
+                <div class="form-group">
+                    <label for="login-username"><i class="fa-solid fa-user"></i> ឈ្មោះគណនី (Username)</label>
+                    <input type="text" id="login-username" required placeholder="បញ្ចូលឈ្មោះគណនី...">
+                </div>
+                <div class="form-group">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> លេខកូដសម្ងាត់ (Password)</label>
+                    <input type="password" id="login-password" required placeholder="បញ្ចូលលេខកូដសម្ងាត់...">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-right-to-bracket"></i> ចូលប្រព័ន្ធ
+                </button>
+            </form>
+            <div class="login-card-footer">
+                <p><strong>គណនីសាកល្បង៖</strong></p>
+                <p>អ្នកគ្រប់គ្រង៖ <code>admin</code> / <code>admin</code></p>
+                <p>បុគ្គលិក៖ <code>staff</code> / <code>staff</code></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+       MAIN WEB APPLICATION SHELL
+       ========================================================================== */ -->
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar no-print">
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-qrcode"></i>
+                    <div class="scan-line"></div>
+                </div>
+                <h2>វត្តមានគ្រូ</h2>
+            </div>
+
+            <!-- Active User Widget -->
+            <div class="sidebar-profile" id="user-profile-widget">
+                <div class="profile-avatar">
+                    <i class="fa-solid fa-circle-user"></i>
+                </div>
+                <div class="profile-info">
+                    <h4 id="user-display-name">គណនីប្រើប្រាស់</h4>
+                    <span id="user-role-badge" class="badge badge-present">តួនាទី</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <a href="#dashboard" class="menu-item active" data-tab="dashboard">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>ផ្ទាំងព័ត៌មាន</span>
+                </a>
+                <a href="#teachers" class="menu-item admin-only" data-tab="teachers">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                    <span>គ្រប់គ្រងគ្រូបង្រៀន</span>
+                </a>
+                <a href="#history" class="menu-item" data-tab="history">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>ប្រវត្តិចុះវត្តមាន</span>
+                </a>
+                <a href="#reports" class="menu-item" data-tab="reports">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>របាយការណ៍ប្រចាំខែ</span>
+                </a>
+                <a href="#settings" class="menu-item admin-only" data-tab="settings">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>ការកំណត់</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn btn-secondary btn-sm" id="btn-logout" title="ចាកចេញពីប្រព័ន្ធ">
+                    <i class="fa-solid fa-right-from-bracket"></i> ចាកចេញ
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Topbar Header -->
+            <header class="topbar no-print">
+                <div class="topbar-left">
+                    <h1 id="page-title">ផ្ទាំងព័ត៌មាន</h1>
+                    <p id="school-name-display" class="school-name">សាលារៀនគំរូ</p>
+                </div>
+                <div class="topbar-right">
+                    <div id="sync-status" class="sync-badge sync-local" title="ស្ថានភាពសមកាលកម្ម (ចុចដើម្បីធ្វើសមកាលកម្មទិន្នន័យ)">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span id="sync-status-text">ម៉ាស៊ីនផ្ទាល់ខ្លួន</span>
+                    </div>
+                    <div class="live-clock">
+                        <i class="fa-regular fa-clock"></i>
+                        <span id="clock-time">00:00:00 AM</span>
+                        <span id="clock-date" class="date-kh">ថ្ងៃអាទិត្យ ១៩ កក្កដា ២០២៦</span>
+                    </div>
+                    <button id="theme-toggle" class="btn-theme" title="ប្តូរពណ៌ផ្ទៃ">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="tab-content active-tab">
+                <!-- Statistics Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card total-teachers">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>គ្រូបង្រៀនសរុប</h3>
+                            <p id="stat-total-teachers">០</p>
+                        </div>
+                    </div>
+                    <div class="stat-card present-today">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>វត្តមានថ្ងៃនេះ</h3>
+                            <p id="stat-present-today">០</p>
+                        </div>
+                    </div>
+                    <div class="stat-card late-today">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-hourglass-half"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>យឺតថ្ងៃនេះ</h3>
+                            <p id="stat-late-today">០</p>
+                        </div>
+                    </div>
+                    <div class="stat-card absent-today">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>អវត្តមានថ្ងៃនេះ</h3>
+                            <p id="stat-absent-today">០</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Scanner Panel -->
+                    <div class="dashboard-panel scanner-panel">
+                        <div class="panel-header">
+                            <h2><i class="fa-solid fa-camera"></i> ស្កែន QR Code ដើម្បីចុះវត្តមាន</h2>
+                            <button id="btn-toggle-camera" class="btn btn-primary btn-sm">
+                                <i class="fa-solid fa-video"></i> ចាប់ផ្តើមកាមេរ៉ា
+                            </button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="scanner-container">
+                                <div id="reader" class="scanner-viewport"></div>
+                                <div class="scanner-placeholder" id="scanner-placeholder">
+                                    <div class="qr-target-box">
+                                        <div class="corner top-left"></div>
+                                        <div class="corner top-right"></div>
+                                        <div class="corner bottom-left"></div>
+                                        <div class="corner bottom-right"></div>
+                                        <i class="fa-solid fa-qrcode fa-5x"></i>
+                                    </div>
+                                    <p>សូមចុចលើប៊ូតុងខាងលើដើម្បីបើកកាមេរ៉ាស្កែន</p>
+                                </div>
+                            </div>
+                            <div class="scanner-controls-manual">
+                                <span class="divider-text">ឬ</span>
+                                <div class="manual-input-group">
+                                    <input type="text" id="manual-code-input" placeholder="បញ្ចូលអត្តលេខគ្រូដោយដៃ...">
+                                    <button id="btn-submit-manual-code" class="btn btn-secondary">បញ្ជូន</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Activity & Chart -->
+                    <div class="dashboard-panel activity-panel">
+                        <div class="panel-header">
+                            <h2><i class="fa-solid fa-list-ul"></i> សកម្មភាពចុះវត្តមានថ្ងៃនេះ</h2>
+                        </div>
+                        <div class="panel-body scrollable-panel">
+                            <ul class="activity-list" id="daily-activity-list">
+                                <!-- Dynamic items populated by js -->
+                                <li class="empty-list">មិនទាន់មានសកម្មភាពនៅឡើយទេ</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="dashboard-panel chart-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-chart-line"></i> ស្ថិតិវត្តមានក្នុងសប្តាហ៍នេះ</h2>
+                    </div>
+                    <div class="panel-body">
+                        <canvas id="weeklyAttendanceChart" height="100"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Teachers Section -->
+            <section id="teachers-section" class="tab-content admin-only">
+                <div class="actions-bar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="teacher-search" placeholder="ស្វែងរកគ្រូបង្រៀន...">
+                    </div>
+                    <div class="teachers-action-buttons">
+                        <button class="btn btn-secondary" id="btn-download-template"
+                            title="ទាញយកគំរូ CSV សម្រាប់បំពេញទិន្នន័យ">
+                            <i class="fa-solid fa-file-arrow-down"></i> ទាញយកគំរូ Excel (CSV)
+                        </button>
+                        <label for="import-teachers-file" class="btn btn-info" style="margin: 0; cursor: pointer;"
+                            title="នាំចូលបញ្ជីឈ្មោះគ្រូពី CSV">
+                            <i class="fa-solid fa-file-import"></i> នាំចូលទិន្នន័យ (CSV)
+                        </label>
+                        <input type="file" id="import-teachers-file" accept=".csv" style="display: none;">
+                        <button class="btn btn-success" id="btn-add-teacher">
+                            <i class="fa-solid fa-plus"></i> បន្ថែមគ្រូបង្រៀនថ្មី
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="teachers-table">
+                        <thead>
+                            <tr>
+                                <th>អត្តលេខ</th>
+                                <th>គោត្តនាម-នាម</th>
+                                <th>ភេទ</th>
+                                <th>លេខទូរស័ព្ទ</th>
+                                <th>មុខវិជ្ជា/កម្រិត</th>
+                                <th>តួនាទី</th>
+                                <th>QR Code</th>
+                                <th class="admin-only">សកម្មភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teachers-list-body">
+                            <!-- Dynamic populated list -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section id="history-section" class="tab-content">
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <label for="filter-date">កាលបរិច្ឆេទ</label>
+                        <input type="date" id="filter-date">
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-teacher">គ្រូបង្រៀន</label>
+                        <select id="filter-teacher">
+                            <option value="">ទាំងអស់</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-status">ស្ថានភាព</label>
+                        <select id="filter-status">
+                            <option value="">ទាំងអស់</option>
+                            <option value="វត្តមាន">វត្តមាន</option>
+                            <option value="យឺត">យឺត</option>
+                            <option value="ច្បាប់">ច្បាប់</option>
+                        </select>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="btn btn-secondary" id="btn-reset-filters">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> ជម្រះ
+                        </button>
+                        <button class="btn btn-primary admin-only" id="btn-add-manual-log">
+                            <i class="fa-solid fa-plus"></i> បញ្ចូលដោយដៃ
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="history-table">
+                        <thead>
+                            <tr>
+                                <th>កាលបរិច្ឆេទ</th>
+                                <th>ម៉ោងចុះវត្តមាន</th>
+                                <th>អត្តលេខ</th>
+                                <th>គោត្តនាម-នាម</th>
+                                <th>វេន/វគ្គ</th>
+                                <th>ស្ថានភាព</th>
+                                <th>វិធីសាស្ត្រ</th>
+                                <th>កំណត់សម្គាល់</th>
+                                <th class="admin-only">សកម្មភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list-body">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="tab-content">
+                <div class="reports-filter no-print">
+                    <div class="filter-group">
+                        <label for="report-month">ជ្រើសរើសខែ</label>
+                        <select id="report-month">
+                            <option value="0">មករា</option>
+                            <option value="1">កុម្ភៈ</option>
+                            <option value="2">មីនា</option>
+                            <option value="3">មេសា</option>
+                            <option value="4">ឧសភា</option>
+                            <option value="5">មិថុនា</option>
+                            <option value="6">កក្កដា</option>
+                            <option value="7">សីហា</option>
+                            <option value="8">កញ្ញា</option>
+                            <option value="9">តុលា</option>
+                            <option value="10">វិច្ឆិកា</option>
+                            <option value="11">ធ្នូ</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="report-year">ជ្រើសរើសឆ្នាំ</label>
+                        <select id="report-year">
+                            <!-- Dynamically loaded -->
+                        </select>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="btn btn-primary" id="btn-generate-report">
+                            <i class="fa-solid fa-gears"></i> បង្កើតរបាយការណ៍
+                        </button>
+                        <button class="btn btn-success admin-only" id="btn-export-excel">
+                            <i class="fa-solid fa-file-excel"></i> ទាញយកជា Excel (CSV)
+                        </button>
+                        <button class="btn btn-secondary admin-only" id="btn-export-word"
+                            title="ទាញយកជារបាយការណ៍ Word (.doc)">
+                            <i class="fa-solid fa-file-word"></i> ទាញយកជា Word
+                        </button>
+                        <button class="btn btn-info" id="btn-print-report">
+                            <i class="fa-solid fa-print"></i> បោះពុម្ព (Print)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Printable Report Sheet Document Layout -->
+                <div class="report-document-wrapper">
+                    <div class="report-document" id="report-print-area">
+                        <!-- Printed header (Kingdom info, School Name) -->
+                        <div class="report-print-header">
+                            <div class="kingdom-header">
+                                <h4>ព្រះរាជាណាចក្រកម្ពុជា</h4>
+                                <h5>ជាតិ សាសនា ព្រះមហាក្សត្រ</h5>
+                                <div class="symbol-dots">. . . . . . . . .</div>
+                            </div>
+                            <div class="school-header">
+                                <h4 id="print-school-name">សាលារៀនគំរូ</h4>
+                                <p>លេខ: .........................</p>
+                            </div>
+                        </div>
+
+                        <div class="report-title-block">
+                            <h2>របាយការណ៍វត្តមានគ្រូបង្រៀនប្រចាំខែ</h2>
+                            <h3 id="report-month-title">ប្រចាំខែ កក្កដា ឆ្នាំ ២០២៦</h3>
+                        </div>
+
+                        <!-- Report Matrix Table -->
+                        <div class="report-table-scroll">
+                            <table class="report-matrix-table" id="report-table-element">
+                                <thead>
+                                    <tr id="report-header-row-1">
+                                        <!-- Header dynamically generated -->
+                                    </tr>
+                                    <tr id="report-header-row-2">
+                                        <!-- Header days 1-31 dynamically generated -->
+                                    </tr>
+                                </thead>
+                                <tbody id="report-matrix-body">
+                                    <!-- Dynamic rows for each teacher -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Signatures -->
+                        <div class="report-print-signatures">
+                            <div class="signature-column col-left">
+                                <p>បានឃើញ និងឯកភាព</p>
+                                <h4>នាយកសាលា</h4>
+                                <div class="signature-space"></div>
+                            </div>
+                            <div class="signature-column col-right">
+                                <p id="print-signature-date">ថ្ងៃទី..... ខែ.......... ឆ្នាំ២០២៦</p>
+                                <h4>អ្នករៀបចំរបាយការណ៍</h4>
+                                <div class="signature-space"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings-section" class="tab-content admin-only">
+                <div class="settings-grid">
+                    <!-- General Settings -->
+                    <div class="settings-panel">
+                        <h2><i class="fa-solid fa-school"></i> ព័ត៌មានទូទៅសាលា</h2>
+                        <div class="form-group">
+                            <label for="setting-school-name">ឈ្មោះសាលារៀន / គ្រឹះស្ថាន</label>
+                            <input type="text" id="setting-school-name" value="សាលារៀនគំរូ">
+                        </div>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label for="setting-google-sheet-url"><i class="fa-solid fa-link"></i> អាសយដ្ឋាន Google Sheet Web App URL</label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                <input type="url" id="setting-google-sheet-url" placeholder="បញ្ចូល Web App URL របស់ Google Sheets..." style="flex: 1; min-width: 200px;">
+                                <button type="button" class="btn btn-info btn-sm" id="btn-show-appscript-code" title="មើល និងចម្លងកូដ Google Apps Script" style="white-space: nowrap;">
+                                    <i class="fa-solid fa-code"></i> មើលកូដ Apps Script
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" id="btn-show-google-guide" title="របៀបភ្ជាប់ Google Sheet" style="white-space: nowrap;">
+                                    <i class="fa-solid fa-circle-question"></i> របៀបភ្ជាប់
+                                </button>
+                            </div>
+                            <small style="color: var(--text-muted); font-size: 0.78rem; margin-top: 0.35rem; display: block;">
+                                បញ្ចូល Web App URL ពី Google Apps Script ដើម្បីចែករំលែក និងប្រើប្រាស់ទិន្នន័យរួមគ្នាតាមឧបករណ៍ច្រើន (Multi-Device Data Sync)។
+                            </small>
+                        </div>
+                        <div style="margin-top: 1.5rem;">
+                            <button type="button" class="btn btn-primary" id="btn-save-general-settings" style="width: 100%;">
+                                <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកការកំណត់ប្រព័ន្ធ
+                            </button>
+                        </div>
+                    </div>
+
+
+                    <!-- User Account Management Panel -->
+                    <div class="settings-panel">
+                        <h2><i class="fa-solid fa-users-gear"></i> គ្រប់គ្រងគណនីប្រើប្រាស់ (User Accounts)</h2>
+                        <p class="settings-desc">គ្រប់គ្រងគណនីប្រើប្រាស់ប្រព័ន្ធ សម្រាប់អ្នកគ្រប់គ្រង និងបុគ្គលិកទូទៅ។
+                        </p>
+                        <div style="margin-bottom:1rem; text-align:right;">
+                            <button class="btn btn-success btn-sm" id="btn-add-user">
+                                <i class="fa-solid fa-plus"></i> បង្កើតគណនីថ្មី
+                            </button>
+                        </div>
+                        <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+                            <table class="data-table" id="users-table" style="font-size:0.85rem;">
+                                <thead>
+                                    <tr>
+                                        <th>ឈ្មោះគណនី</th>
+                                        <th>ឈ្មោះបង្ហាញ</th>
+                                        <th>តួនាទី</th>
+                                        <th>សកម្មភាព</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-list-body">
+                                    <!-- Dynamic user accounts list -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Workday Settings -->
+                    <div class="settings-panel">
+                        <h2><i class="fa-solid fa-calendar-days"></i> កំណត់ថ្ងៃធ្វើការ</h2>
+                        <p class="settings-desc">ជ្រើសរើសថ្ងៃដែលត្រូវរាប់វត្តមាន
+                            (ថ្ងៃដែលគ្មានការស្កែនក្នុងថ្ងៃធ្វើការនឹងត្រូវគណនាជាអវត្តមាន)</p>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="workday-mon" checked> ថ្ងៃចន្ទ
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="workday-tue" checked> ថ្ងៃអង្គារ
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="workday-wed" checked> ថ្ងៃពុធ
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="workday-thu" checked> ថ្ងៃព្រហស្បតិ៍
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="workday-fri" checked> ថ្ងៃសុក្រ
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="workday-sat"> ថ្ងៃសៅរ៍
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="workday-sun"> ថ្ងៃអាទិត្យ
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Shift Time Settings -->
+                    <div class="settings-panel">
+                        <h2><i class="fa-solid fa-clock"></i> កំណត់ម៉ោងចូលបង្រៀន & យឺតយ៉ាវ</h2>
+                        <div class="settings-row">
+                            <div class="settings-col">
+                                <h3>វេនព្រឹក (Morning Shift)</h3>
+                                <div class="form-group">
+                                    <label for="setting-morning-start">ម៉ោងចាប់ផ្តើមចុះវត្តមាន</label>
+                                    <input type="time" id="setting-morning-start" value="06:30">
+                                </div>
+                                <div class="form-group">
+                                    <label for="setting-morning-late">ម៉ោងគិតថាយឺត (ចាប់ពី)</label>
+                                    <input type="time" id="setting-morning-late" value="07:30">
+                                </div>
+                            </div>
+                            <div class="settings-col">
+                                <h3>វេនរសៀល (Afternoon Shift)</h3>
+                                <div class="form-group">
+                                    <label for="setting-afternoon-start">ម៉ោងចាប់ផ្តើមចុះវត្តមាន</label>
+                                    <input type="time" id="setting-afternoon-start" value="12:30">
+                                </div>
+                                <div class="form-group">
+                                    <label for="setting-afternoon-late">ម៉ោងគិតថាយឺត (ចាប់ពី)</label>
+                                    <input type="time" id="setting-afternoon-late" value="13:30">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Backup & Restore -->
+                    <div class="settings-panel">
+                        <h2><i class="fa-solid fa-database"></i> ការគ្រប់គ្រងទិន្នន័យ (Database)</h2>
+                        <p class="settings-desc">ទិន្នន័យទាំងអស់រក្សាទុកក្នុងកម្មវិធីរុករក (Browser) របស់អ្នក។
+                            សូមធ្វើការទាញយកទិន្នន័យបម្រុងទុកឱ្យបានទៀងទាត់ដើម្បីការពារការបាត់បង់។</p>
+                        <div class="backup-actions">
+                            <button class="btn btn-success" id="btn-backup-data">
+                                <i class="fa-solid fa-download"></i> ទាញយកទិន្នន័យបម្រុងទុក (Backup JSON)
+                            </button>
+                            <label for="restore-file-input" class="btn btn-info btn-file-label">
+                                <i class="fa-solid fa-upload"></i> បញ្ចូលទិន្នន័យឡើងវិញ (Restore JSON)
+                            </label>
+                            <input type="file" id="restore-file-input" accept=".json" style="display: none;">
+                            <button class="btn btn-danger" id="btn-reset-db">
+                                <i class="fa-solid fa-trash-can"></i> លុបទិន្នន័យទាំងអស់ចោល
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- 1. Teacher Form Modal -->
+    <div id="modal-teacher" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modal-teacher-title">បន្ថែមគ្រូបង្រៀនថ្មី</h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-teacher')">&times;</button>
+            </div>
+            <form id="teacher-form">
+                <input type="hidden" id="teacher-form-action" value="add">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="teacher-id">អត្តលេខគ្រូ (Teacher ID) <span class="required">*</span></label>
+                        <input type="text" id="teacher-id" required placeholder="ឧ. T001">
+                    </div>
+                    <div class="form-group">
+                        <label for="teacher-name">គោត្តនាម-នាម <span class="required">*</span></label>
+                        <input type="text" id="teacher-name" required placeholder="ឧ. សុខ សាន">
+                    </div>
+                    <div class="form-group">
+                        <label for="teacher-gender">ភេទ <span class="required">*</span></label>
+                        <select id="teacher-gender" required>
+                            <option value="ប្រុស">ប្រុស</option>
+                            <option value="ស្រី">ស្រី</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="teacher-phone">លេខទូរស័ព្ទ</label>
+                        <input type="text" id="teacher-phone" placeholder="ឧ. 012 345 678">
+                    </div>
+                    <div class="form-group">
+                        <label for="teacher-subject">មុខវិជ្ជា / កម្រិតបង្រៀន</label>
+                        <input type="text" id="teacher-subject" placeholder="ឧ. គណិតវិទ្យា ថ្នាក់ទី១២">
+                    </div>
+                    <div class="form-group">
+                        <label for="teacher-position">តួនាទី</label>
+                        <input type="text" id="teacher-position" placeholder="ឧ. គ្រូបង្រៀន, គ្រូបន្ទុកថ្នាក់">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('modal-teacher')">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. QR Code Card Modal -->
+    <div id="modal-qr" class="modal-overlay">
+        <div class="modal-box card-modal">
+            <div class="modal-header no-print">
+                <h3>កាតសម្គាល់ខ្លួន និង QR Code របស់គ្រូ</h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-qr')">&times;</button>
+            </div>
+            <div class="modal-body print-card-only">
+                <!-- Printable QR Card container -->
+                <div class="qr-card" id="teacher-qr-card-print">
+                    <div class="qr-card-header">
+                        <i class="fa-solid fa-school"></i>
+                        <h4 class="qr-school-title">សាលារៀនគំរូ</h4>
+                    </div>
+                    <div class="qr-card-body">
+                        <div class="qr-avatar">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        <div class="qr-teacher-info">
+                            <h3 id="qr-card-name">ឈ្មោះគ្រូ</h3>
+                            <p>អត្តលេខ: <span id="qr-card-id" class="code-font">T001</span></p>
+                            <p>តួនាទី: <span id="qr-card-position">គ្រូបង្រៀន</span></p>
+                        </div>
+                        <div class="qr-wrapper">
+                            <div id="qrcode-display"></div>
+                        </div>
+                    </div>
+                    <div class="qr-card-footer">
+                        <p>សូមបង្ហាញកូដនេះទៅកាមេរ៉ាដើម្បីចុះវត្តមាន</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer no-print">
+                <button class="btn btn-secondary" onclick="closeModal('modal-qr')">បិទ</button>
+                <button class="btn btn-info" id="btn-print-qr-card">
+                    <i class="fa-solid fa-print"></i> បោះពុម្ពកាតនេះ (Print)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Manual Log Modal -->
+    <div id="modal-manual-log" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modal-log-title">បញ្ជូលវត្តមានដោយដៃ / សុំច្បាប់</h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-manual-log')">&times;</button>
+            </div>
+            <form id="manual-log-form">
+                <input type="hidden" id="manual-log-action" value="add">
+                <input type="hidden" id="manual-log-id" value="">
+                <div class="modal-body">
+                    <div class="form-group" id="manual-log-teacher-select-group">
+                        <label for="manual-log-teacher">ជ្រើសរើសគ្រូបង្រៀន <span class="required">*</span></label>
+                        <select id="manual-log-teacher" required>
+                            <!-- Dynamic teachers list -->
+                        </select>
+                    </div>
+                    <div class="form-group" id="manual-log-teacher-display-group" style="display:none;">
+                        <label>គ្រូបង្រៀន</label>
+                        <p id="manual-log-teacher-name-display"
+                            style="font-weight:bold; font-size:1.1rem; color:var(--text-primary);"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="manual-log-date">កាលបរិច្ឆេទ <span class="required">*</span></label>
+                        <input type="date" id="manual-log-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="manual-log-session">វេន / វគ្គ <span class="required">*</span></label>
+                        <select id="manual-log-session" required>
+                            <option value="morning">វេនព្រឹក</option>
+                            <option value="afternoon">វេនរសៀល</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="manual-log-status">ស្ថានភាព <span class="required">*</span></label>
+                        <select id="manual-log-status" required>
+                            <option value="វត្តមាន">វត្តមាន (Present)</option>
+                            <option value="យឺត">យឺត (Late)</option>
+                            <option value="ច្បាប់">ច្បាប់ (Excused)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="manual-log-time">ម៉ោងចូល (មិនចាំបាច់សម្រាប់សុំច្បាប់)</label>
+                        <input type="time" id="manual-log-time">
+                    </div>
+                    <div class="form-group">
+                        <label for="manual-log-remark">កំណត់សម្គាល់ (មូលហេតុ...)</label>
+                        <input type="text" id="manual-log-remark" placeholder="ឧ. ឈឺមានលិខិតបញ្ជាក់, យឺតដោយសារបែកកង់">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('manual-log')">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. User Form Modal -->
+    <div id="modal-user" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modal-user-title">បង្កើតគណនីប្រើប្រាស់ថ្មី</h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-user')">&times;</button>
+            </div>
+            <form id="user-form">
+                <input type="hidden" id="user-form-action" value="add">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="user-username">ឈ្មោះគណនី (Username) <span class="required">*</span></label>
+                        <input type="text" id="user-username" required placeholder="ឧ. staff2">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-displayname">ឈ្មោះបង្ហាញ (Display Name) <span class="required">*</span></label>
+                        <input type="text" id="user-displayname" required placeholder="ឧ. លោកគ្រូ វណ្ណា">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-role">តួនាទី (Role) <span class="required">*</span></label>
+                        <select id="user-role" required>
+                            <option value="staff">បុគ្គលិកទូទៅ (Staff)</option>
+                            <option value="admin">អ្នកគ្រប់គ្រង (Admin)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-password">លេខកូដសម្ងាត់ (Password) <span class="required">*</span></label>
+                        <input type="password" id="user-password" required placeholder="បញ្ចូលលេខកូដសម្ងាត់...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-user')">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- External Libraries JS -->
+    <!-- QRCodeJS for generating QR code cards -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Html5Qrcode for camera scanning -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- ChartJS for statistics graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SweetAlert2 for notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Custom APP JS -->
+    <script src="app.js?v=8"></script>
+</body>
+
+</html>

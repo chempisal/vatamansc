@@ -10,7 +10,7 @@ const AppState = {
     currentUser: null,
     settings: {
         schoolName: "sihamoni high school",
-        googleSheetUrl: "https://script.google.com/macros/s/AKfycbxWGXkAng04n7D7Sr1sfpJZ3DZpsII7-ozBS-bg-7Zh0afq7sMatXsaqdy2zavSd5xw/exec",
+        googleSheetUrl: "https://script.google.com/macros/s/AKfycbyW_28Ik_oDScL9v08OQWH2b8sgQqI0yCbuXhM9FNqNLXyaoD1KBkV0zTRxcx-d8HwLWQ/exec",
         workdays: {
             mon: true,
             tue: true,

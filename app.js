@@ -31,7 +31,7 @@ const AppState = {
 };
 
 // Central Google Sheets Connection Web App URL (Hardcoded fallback)
-const DEFAULT_GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxWGXkAng04n7D7Sr1sfpJZ3DZpsII7-ozBS-bg-7Zh0afq7sMatXsaqdy2zavSd5xw/exec";
+const DEFAULT_GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyW_28Ik_oDScL9v08OQWH2b8sgQqI0yCbuXhM9FNqNLXyaoD1KBkV0zTRxcx-d8HwLWQ/exec";
 
 // Dynamic Getter for Google Sheet URL (from Settings or Fallback)
 function getGoogleSheetUrl() {
